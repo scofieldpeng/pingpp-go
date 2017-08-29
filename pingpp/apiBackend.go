@@ -22,7 +22,7 @@ type ApiBackend struct {
 }
 
 // 后端处理请求方法
-func (s ApiBackend) Call(method, path, key string, form *url.Values, params []byte, v interface{}) error {
+func (s ApiBackend) Call(method, path, key string, privateKey string,form *url.Values, params []byte, v interface{}) error {
 	var body io.Reader
 	if strings.ToUpper(method) == "POST" || strings.ToUpper(method) == "PUT" {
 		body = bytes.NewBuffer(params)
@@ -35,7 +35,7 @@ func (s ApiBackend) Call(method, path, key string, form *url.Values, params []by
 		}
 	}
 
-	req, err := s.NewRequest(method, path, key, "application/json", body, params)
+	req, err := s.NewRequest(method, path, key, privateKey,"application/json", body, params)
 
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (s ApiBackend) Call(method, path, key string, form *url.Values, params []by
 }
 
 // 建立http请求对象
-func (s *ApiBackend) NewRequest(method, path, key, contentType string, body io.Reader, params []byte) (*http.Request, error) {
+func (s *ApiBackend) NewRequest(method, path, key, privateKey,contentType string, body io.Reader, params []byte) (*http.Request, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -73,8 +73,8 @@ func (s *ApiBackend) NewRequest(method, path, key, contentType string, body io.R
 	req.Header.Set("Pingplusplus-Request-Timestamp", requestTime)
 	dataToBeSign = dataToBeSign + req.URL.RequestURI() + requestTime
 
-	if len(AccountPrivateKey) > 0 {
-		sign, err := GenSign([]byte(dataToBeSign), []byte(AccountPrivateKey))
+	if len(privateKey) > 0 {
+		sign, err := GenSign([]byte(dataToBeSign), []byte(privateKey))
 		if err != nil {
 			if LogLevel > 0 {
 				log.Printf("Cannot create RSA signature: %v\n", err)

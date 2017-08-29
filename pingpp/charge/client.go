@@ -12,15 +12,16 @@ import (
 type Client struct {
 	B   pingpp.Backend
 	Key string
+	PrivateKey string
 }
 
-func getC() Client {
-	return Client{pingpp.GetBackend(pingpp.APIBackend), pingpp.Key}
+func getC(key,privateKey string) Client {
+	return Client{B:pingpp.GetBackend(pingpp.APIBackend) ,Key:key,PrivateKey:privateKey}
 }
 
 // 发送 charge 请求
-func New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
-	return getC().New(params)
+func New(key,privateKey string,params *pingpp.ChargeParams) (*pingpp.Charge, error) {
+	return getC(key,privateKey).New(params)
 }
 
 func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
@@ -36,7 +37,7 @@ func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
 	}
 
 	charge := &pingpp.Charge{}
-	errch := c.B.Call("POST", "/charges", c.Key, nil, paramsString, charge)
+	errch := c.B.Call("POST", "/charges", c.Key,c.PrivateKey, nil, paramsString, charge)
 	if errch != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("%v\n", errch)
@@ -51,15 +52,15 @@ func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
 }
 
 // 撤销charge，此接口仅接受线下 isv_scan、isv_wap、isv_qr 渠道的订单调用
-func Reverse(id string) (*pingpp.Charge, error) {
-	return getC().Reverse(id)
+func Reverse(key,privateKey string,id string) (*pingpp.Charge, error) {
+	return getC(key,privateKey).Reverse(id)
 }
 
 func (c Client) Reverse(id string) (*pingpp.Charge, error) {
 	var body *url.Values
 	body = &url.Values{}
 	charge := &pingpp.Charge{}
-	err := c.B.Call("POST", "/charges/"+id+"/reverse", c.Key, body, nil, charge)
+	err := c.B.Call("POST", "/charges/"+id+"/reverse", c.Key,c.PrivateKey, body, nil, charge)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Reverse Charge error: %v\n", err)
@@ -69,15 +70,15 @@ func (c Client) Reverse(id string) (*pingpp.Charge, error) {
 }
 
 //查询指定 charge 对象
-func Get(id string) (*pingpp.Charge, error) {
-	return getC().Get(id)
+func Get(key,privateKey,id string) (*pingpp.Charge, error) {
+	return getC(key,privateKey).Get(id)
 }
 
 func (c Client) Get(id string) (*pingpp.Charge, error) {
 	var body *url.Values
 	body = &url.Values{}
 	charge := &pingpp.Charge{}
-	err := c.B.Call("GET", "/charges/"+id, c.Key, body, nil, charge)
+	err := c.B.Call("GET", "/charges/"+id, c.Key, c.PrivateKey,body, nil, charge)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Get Charge error: %v\n", err)
