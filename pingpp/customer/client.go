@@ -2,7 +2,7 @@ package customer
 
 import (
 	"fmt"
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
 	"log"
 	"net/url"
 	"strconv"
@@ -12,15 +12,21 @@ import (
 type Client struct {
 	B   pingpp.Backend
 	Key string
+	PrivateKey string
 }
 
-func getC() Client {
-	return Client{pingpp.GetBackend(pingpp.APIBackend), pingpp.Key}
+func getC(authKey ...pingpp.AuthKey) Client {
+	if len(authKey) == 0 {
+		authKey = make([]pingpp.AuthKey, 1)
+		authKey[0].Key = pingpp.Key
+		authKey[0].PrivateKey = pingpp.AccountPrivateKey
+	}
+	return Client{pingpp.GetBackend(pingpp.APIBackend), authKey[0].Key,authKey[0].PrivateKey}
 }
 
 // 发送 customer 请求
-func New(params *pingpp.CustomerParams) (*pingpp.Customer, error) {
-	return getC().New(params)
+func New(params *pingpp.CustomerParams,authKey ...pingpp.AuthKey) (*pingpp.Customer, error) {
+	return getC(authKey...).New(params)
 }
 
 func (c Client) New(params *pingpp.CustomerParams) (*pingpp.Customer, error) {
@@ -36,7 +42,7 @@ func (c Client) New(params *pingpp.CustomerParams) (*pingpp.Customer, error) {
 	}
 
 	customer := &pingpp.Customer{}
-	errch := c.B.Call("POST", "/customers", c.Key, nil, paramsString, customer)
+	errch := c.B.Call("POST", "/customers", c.Key,c.PrivateKey, nil, paramsString, customer)
 	if errch != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("%v\n", errch)
@@ -51,15 +57,15 @@ func (c Client) New(params *pingpp.CustomerParams) (*pingpp.Customer, error) {
 }
 
 //查询指定 customer 对象
-func Get(cus_id string) (*pingpp.Customer, error) {
-	return getC().Get(cus_id)
+func Get(cus_id string,authKey ...pingpp.AuthKey) (*pingpp.Customer, error) {
+	return getC(authKey...).Get(cus_id)
 }
 
 func (c Client) Get(cus_id string) (*pingpp.Customer, error) {
 	var body *url.Values
 	body = &url.Values{}
 	customer := &pingpp.Customer{}
-	err := c.B.Call("GET", fmt.Sprintf("/customers/%v", cus_id), c.Key, body, nil, customer)
+	err := c.B.Call("GET", fmt.Sprintf("/customers/%v", cus_id), c.Key, c.PrivateKey,body, nil, customer)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Get Card error: %v\n", err)
@@ -69,8 +75,8 @@ func (c Client) Get(cus_id string) (*pingpp.Customer, error) {
 }
 
 // 发送 customer 请求
-func Update(cus_id string, params *pingpp.CustomerUpdateParams) (*pingpp.Customer, error) {
-	return getC().Update(cus_id, params)
+func Update(cus_id string, params *pingpp.CustomerUpdateParams,authKey ...pingpp.AuthKey) (*pingpp.Customer, error) {
+	return getC(authKey...).Update(cus_id, params)
 }
 
 func (c Client) Update(cus_id string, params *pingpp.CustomerUpdateParams) (*pingpp.Customer, error) {
@@ -86,7 +92,7 @@ func (c Client) Update(cus_id string, params *pingpp.CustomerUpdateParams) (*pin
 	}
 
 	customer := &pingpp.Customer{}
-	errch := c.B.Call("PUT", fmt.Sprintf("/customers/%v", cus_id), c.Key, nil, paramsString, customer)
+	errch := c.B.Call("PUT", fmt.Sprintf("/customers/%v", cus_id), c.Key,c.PrivateKey, nil, paramsString, customer)
 	if errch != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("%v\n", errch)
@@ -101,15 +107,15 @@ func (c Client) Update(cus_id string, params *pingpp.CustomerUpdateParams) (*pin
 }
 
 //删除指定 customer 对象
-func Delete(cus_id string) (map[string]interface{}, error) {
-	return getC().Delete(cus_id)
+func Delete(cus_id string,authKey ...pingpp.AuthKey) (map[string]interface{}, error) {
+	return getC(authKey...).Delete(cus_id)
 }
 
 func (c Client) Delete(cus_id string) (map[string]interface{}, error) {
 	var body *url.Values
 	body = &url.Values{}
 	res := make(map[string]interface{})
-	err := c.B.Call("DELETE", fmt.Sprintf("/customers/%v", cus_id), c.Key, body, nil, &res)
+	err := c.B.Call("DELETE", fmt.Sprintf("/customers/%v", cus_id), c.Key,c.PrivateKey, body, nil, &res)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Get Card error: %v\n", err)
@@ -119,8 +125,8 @@ func (c Client) Delete(cus_id string) (map[string]interface{}, error) {
 }
 
 // 查询 customer 列表
-func List(params *pingpp.CustomerListParams) *Iter {
-	return getC().List(params)
+func List(params *pingpp.CustomerListParams,authKey ...pingpp.AuthKey) *Iter {
+	return getC(authKey...).List(params)
 }
 
 func (c Client) List(params *pingpp.CustomerListParams) *Iter {
@@ -144,7 +150,7 @@ func (c Client) List(params *pingpp.CustomerListParams) *Iter {
 
 	return &Iter{pingpp.GetIter(lp, body, func(b url.Values) ([]interface{}, pingpp.ListMeta, error) {
 		list := &chargeList{}
-		err := c.B.Call("GET", "/customers", c.Key, &b, nil, list)
+		err := c.B.Call("GET", "/customers", c.Key, c.PrivateKey,&b, nil, list)
 
 		ret := make([]interface{}, len(list.Values))
 		for i, v := range list.Values {

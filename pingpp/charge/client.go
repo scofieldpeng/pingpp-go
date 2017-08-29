@@ -6,22 +6,27 @@ import (
 	"strconv"
 	"time"
 
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
 )
 
 type Client struct {
-	B   pingpp.Backend
-	Key string
+	B          pingpp.Backend
+	Key        string
 	PrivateKey string
 }
 
-func getC(key,privateKey string) Client {
-	return Client{B:pingpp.GetBackend(pingpp.APIBackend) ,Key:key,PrivateKey:privateKey}
+func getC(authKey ...pingpp.AuthKey) Client {
+	if len(authKey) == 0 {
+		authKey = make([]pingpp.AuthKey, 1)
+		authKey[0].Key = pingpp.Key
+		authKey[0].PrivateKey = pingpp.AccountPrivateKey
+	}
+	return Client{B: pingpp.GetBackend(pingpp.APIBackend), Key: authKey[0].PrivateKey, PrivateKey: authKey[0].PrivateKey}
 }
 
 // 发送 charge 请求
-func New(key,privateKey string,params *pingpp.ChargeParams) (*pingpp.Charge, error) {
-	return getC(key,privateKey).New(params)
+func New(params *pingpp.ChargeParams, authKey ...pingpp.AuthKey) (*pingpp.Charge, error) {
+	return getC(authKey...).New(params)
 }
 
 func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
@@ -37,7 +42,7 @@ func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
 	}
 
 	charge := &pingpp.Charge{}
-	errch := c.B.Call("POST", "/charges", c.Key,c.PrivateKey, nil, paramsString, charge)
+	errch := c.B.Call("POST", "/charges", c.Key, c.PrivateKey, nil, paramsString, charge)
 	if errch != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("%v\n", errch)
@@ -52,15 +57,15 @@ func (c Client) New(params *pingpp.ChargeParams) (*pingpp.Charge, error) {
 }
 
 // 撤销charge，此接口仅接受线下 isv_scan、isv_wap、isv_qr 渠道的订单调用
-func Reverse(key,privateKey string,id string) (*pingpp.Charge, error) {
-	return getC(key,privateKey).Reverse(id)
+func Reverse(id string, authKey ...pingpp.AuthKey) (*pingpp.Charge, error) {
+	return getC(authKey...).Reverse(id)
 }
 
 func (c Client) Reverse(id string) (*pingpp.Charge, error) {
 	var body *url.Values
 	body = &url.Values{}
 	charge := &pingpp.Charge{}
-	err := c.B.Call("POST", "/charges/"+id+"/reverse", c.Key,c.PrivateKey, body, nil, charge)
+	err := c.B.Call("POST", "/charges/"+id+"/reverse", c.Key, c.PrivateKey, body, nil, charge)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Reverse Charge error: %v\n", err)
@@ -70,15 +75,15 @@ func (c Client) Reverse(id string) (*pingpp.Charge, error) {
 }
 
 //查询指定 charge 对象
-func Get(key,privateKey,id string) (*pingpp.Charge, error) {
-	return getC(key,privateKey).Get(id)
+func Get(id string, authKey ...pingpp.AuthKey) (*pingpp.Charge, error) {
+	return getC(authKey...).Get(id)
 }
 
 func (c Client) Get(id string) (*pingpp.Charge, error) {
 	var body *url.Values
 	body = &url.Values{}
 	charge := &pingpp.Charge{}
-	err := c.B.Call("GET", "/charges/"+id, c.Key, c.PrivateKey,body, nil, charge)
+	err := c.B.Call("GET", "/charges/"+id, c.Key, c.PrivateKey, body, nil, charge)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Get Charge error: %v\n", err)
@@ -88,8 +93,8 @@ func (c Client) Get(id string) (*pingpp.Charge, error) {
 }
 
 // 查询 charge 列表
-func List(appId string, params *pingpp.ChargeListParams) *Iter {
-	return getC().List(appId, params)
+func List(appId string, params *pingpp.ChargeListParams, authKey ...pingpp.AuthKey) *Iter {
+	return getC(authKey...).List(appId, params)
 }
 
 func (c Client) List(appId string, params *pingpp.ChargeListParams) *Iter {
@@ -114,7 +119,7 @@ func (c Client) List(appId string, params *pingpp.ChargeListParams) *Iter {
 
 	return &Iter{pingpp.GetIter(lp, body, func(b url.Values) ([]interface{}, pingpp.ListMeta, error) {
 		list := &chargeList{}
-		err := c.B.Call("GET", "/charges", c.Key, &b, nil, list)
+		err := c.B.Call("GET", "/charges", c.Key, c.PrivateKey, &b, nil, list)
 
 		ret := make([]interface{}, len(list.Values))
 		for i, v := range list.Values {

@@ -3,7 +3,7 @@ package identification
 import (
 	"log"
 
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
 )
 
 const (
@@ -12,12 +12,13 @@ const (
 )
 
 type Client struct {
-	B   pingpp.Backend
-	Key string
+	B          pingpp.Backend
+	Key        string
+	PrivateKey string
 }
 
-func New(params *pingpp.IdentificationParams) (*pingpp.IdentificationResult, error) {
-	return getC().New(params)
+func New(params *pingpp.IdentificationParams, authKey ...pingpp.AuthKey) (*pingpp.IdentificationResult, error) {
+	return getC(authKey...).New(params)
 }
 
 func (c Client) New(params *pingpp.IdentificationParams) (*pingpp.IdentificationResult, error) {
@@ -33,10 +34,15 @@ func (c Client) New(params *pingpp.IdentificationParams) (*pingpp.Identification
 	}
 	identificationResult := &pingpp.IdentificationResult{}
 
-	err := c.B.Call("POST", "/identification", c.Key, nil, paramsString, identificationResult)
+	err := c.B.Call("POST", "/identification", c.Key, c.PrivateKey, nil, paramsString, identificationResult)
 	return identificationResult, err
 }
 
-func getC() Client {
-	return Client{pingpp.GetBackend(pingpp.APIBackend), pingpp.Key}
+func getC(authKey ...pingpp.AuthKey) Client {
+	if len(authKey) == 0 {
+		authKey = make([]pingpp.AuthKey, 1)
+		authKey[0].Key = pingpp.Key
+		authKey[0].PrivateKey = pingpp.AccountPrivateKey
+	}
+	return Client{pingpp.GetBackend(pingpp.APIBackend), authKey[0].Key, authKey[0].PrivateKey}
 }

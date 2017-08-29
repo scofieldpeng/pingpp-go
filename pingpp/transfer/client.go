@@ -5,16 +5,17 @@ import (
 	"net/url"
 	"strconv"
 
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
 )
 
 type Client struct {
-	B   pingpp.Backend
-	Key string
+	B          pingpp.Backend
+	Key        string
+	PrivateKey string
 }
 
-func New(params *pingpp.TransferParams) (*pingpp.Transfer, error) {
-	return getC().New(params)
+func New(params *pingpp.TransferParams, authKey ...pingpp.AuthKey) (*pingpp.Transfer, error) {
+	return getC(authKey...).New(params)
 }
 
 func (c Client) New(params *pingpp.TransferParams) (*pingpp.Transfer, error) {
@@ -29,12 +30,12 @@ func (c Client) New(params *pingpp.TransferParams) (*pingpp.Transfer, error) {
 		log.Printf("params of redEnvelope request to pingpp is :\n %v\n ", string(paramsString))
 	}
 	transfer := &pingpp.Transfer{}
-	err := c.B.Call("POST", "/transfers", c.Key, nil, paramsString, transfer)
+	err := c.B.Call("POST", "/transfers", c.Key, c.PrivateKey, nil, paramsString, transfer)
 	return transfer, err
 }
 
-func Update(id string) (*pingpp.Transfer, error) {
-	return getC().Update(id)
+func Update(id string, authKey ...pingpp.AuthKey) (*pingpp.Transfer, error) {
+	return getC(authKey...).Update(id)
 }
 
 func (c Client) Update(id string) (*pingpp.Transfer, error) {
@@ -46,26 +47,26 @@ func (c Client) Update(id string) (*pingpp.Transfer, error) {
 
 	paramsString, _ := pingpp.JsonEncode(cancelParams)
 	transfer := &pingpp.Transfer{}
-	err := c.B.Call("PUT", "/transfers/"+id, c.Key, nil, paramsString, transfer)
+	err := c.B.Call("PUT", "/transfers/"+id, c.Key, c.PrivateKey, nil, paramsString, transfer)
 	return transfer, err
 }
 
 // Get returns the details of a redenvelope.
-func Get(id string) (*pingpp.Transfer, error) {
-	return getC().Get(id)
+func Get(id string, authKey ...pingpp.AuthKey) (*pingpp.Transfer, error) {
+	return getC(authKey...).Get(id)
 }
 
 func (c Client) Get(id string) (*pingpp.Transfer, error) {
 	var body *url.Values
 	body = &url.Values{}
 	transfer := &pingpp.Transfer{}
-	err := c.B.Call("GET", "/transfers/"+id, c.Key, body, nil, transfer)
+	err := c.B.Call("GET", "/transfers/"+id, c.Key, c.PrivateKey, body, nil, transfer)
 	return transfer, err
 }
 
 // List returns a list of transfer.
-func List(params *pingpp.TransferListParams) *Iter {
-	return getC().List(params)
+func List(params *pingpp.TransferListParams, authKey ...pingpp.AuthKey) *Iter {
+	return getC(authKey...).List(params)
 }
 
 func (c Client) List(params *pingpp.TransferListParams) *Iter {
@@ -89,7 +90,7 @@ func (c Client) List(params *pingpp.TransferListParams) *Iter {
 
 	return &Iter{pingpp.GetIter(lp, body, func(b url.Values) ([]interface{}, pingpp.ListMeta, error) {
 		list := &transferList{}
-		err := c.B.Call("GET", "/transfers", c.Key, &b, nil, list)
+		err := c.B.Call("GET", "/transfers", c.Key, c.PrivateKey, &b, nil, list)
 
 		ret := make([]interface{}, len(list.Values))
 		for i, v := range list.Values {
@@ -108,6 +109,11 @@ func (i *Iter) Transfer() *pingpp.Transfer {
 	return i.Current().(*pingpp.Transfer)
 }
 
-func getC() Client {
-	return Client{pingpp.GetBackend(pingpp.APIBackend), pingpp.Key}
+func getC(authKey ...pingpp.AuthKey) Client {
+	if len(authKey) == 0 {
+		authKey = make([]pingpp.AuthKey, 1)
+		authKey[0].Key = pingpp.Key
+		authKey[0].PrivateKey = pingpp.AccountPrivateKey
+	}
+	return Client{pingpp.GetBackend(pingpp.APIBackend), authKey[0].Key, authKey[0].PrivateKey}
 }

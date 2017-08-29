@@ -2,24 +2,31 @@ package token
 
 import (
 	"fmt"
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
 	"log"
 	"net/url"
 	"time"
+
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
 )
 
 type Client struct {
-	B   pingpp.Backend
-	Key string
+	B          pingpp.Backend
+	Key        string
+	PrivateKey string
 }
 
-func getC() Client {
-	return Client{pingpp.GetBackend(pingpp.APIBackend), pingpp.Key}
+func getC(authKey ...pingpp.AuthKey) Client {
+	if len(authKey) == 0 {
+		authKey = make([]pingpp.AuthKey, 1)
+		authKey[0].Key = pingpp.Key
+		authKey[0].PrivateKey = pingpp.AccountPrivateKey
+	}
+	return Client{pingpp.GetBackend(pingpp.APIBackend), authKey[0].Key, authKey[0].PrivateKey}
 }
 
 // 发送 Token 请求
-func New(params *pingpp.TokenParams) (*pingpp.Token, error) {
-	return getC().New(params)
+func New(params *pingpp.TokenParams, authKey ...pingpp.AuthKey) (*pingpp.Token, error) {
+	return getC(authKey...).New(params)
 }
 
 func (c Client) New(params *pingpp.TokenParams) (*pingpp.Token, error) {
@@ -35,7 +42,7 @@ func (c Client) New(params *pingpp.TokenParams) (*pingpp.Token, error) {
 	}
 
 	token := &pingpp.Token{}
-	errch := c.B.Call("POST", "/tokens", c.Key, nil, paramsString, token)
+	errch := c.B.Call("POST", "/tokens", c.Key, c.PrivateKey, nil, paramsString, token)
 	if errch != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("%v\n", errch)
@@ -50,15 +57,15 @@ func (c Client) New(params *pingpp.TokenParams) (*pingpp.Token, error) {
 }
 
 //查询指定 token 对象
-func Get(tok_id string) (*pingpp.Token, error) {
-	return getC().Get(tok_id)
+func Get(tok_id string, authKey ...pingpp.AuthKey) (*pingpp.Token, error) {
+	return getC(authKey...).Get(tok_id)
 }
 
 func (c Client) Get(tok_id string) (*pingpp.Token, error) {
 	var body *url.Values
 	body = &url.Values{}
 	token := &pingpp.Token{}
-	err := c.B.Call("GET", fmt.Sprintf("/tokens/%v", tok_id), c.Key, body, nil, token)
+	err := c.B.Call("GET", fmt.Sprintf("/tokens/%v", tok_id), c.Key, c.PrivateKey, body, nil, token)
 	if err != nil {
 		if pingpp.LogLevel > 0 {
 			log.Printf("Get Card error: %v\n", err)

@@ -41,11 +41,17 @@ var (
 	OsInfo            string
 )
 
+// AuthKey 认证key
+type AuthKey struct {
+	Key        string
+	PrivateKey string
+}
+
 type SupportedBackend string
 
 // 定义统一后端处理接口
 type Backend interface {
-	Call(method, path, key string, body *url.Values, params []byte, v interface{}) error
+	Call(method, path, key, privateKey string,body *url.Values, params []byte, v interface{}) error
 }
 
 // 获取当前sdk的版本
