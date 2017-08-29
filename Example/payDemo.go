@@ -15,8 +15,8 @@ import (
 	"strconv"
 	"time"
 
-	pingpp "github.com/pingplusplus/pingpp-go/pingpp"
-	"github.com/pingplusplus/pingpp-go/pingpp/charge"
+	pingpp "github.com/scofieldpeng/pingpp-go/pingpp"
+	"github.com/scofieldpeng/pingpp-go/pingpp/charge"
 	//"io/ioutil"
 )
 
@@ -154,7 +154,11 @@ func ExampleCharge_new() {
 	}
 
 	//返回的第一个参数是 charge 对象，你需要将其转换成 json 给客户端，或者客户端接收后转换。
-	ch, err := charge.New(params)
+	// 第二个参数可选,如果想传递一个不同的 appkey 和 secretkey, 直接设置第二个参数即可
+	ch, err := charge.New(params,pingpp.AuthKey{
+		Key:"test",
+		PrivateKey:"xxxxxx",
+	})
 	if err != nil {
 		errs, _ := json.Marshal(err)
 		fmt.Println(string(errs))

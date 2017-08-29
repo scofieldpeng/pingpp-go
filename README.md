@@ -1,9 +1,13 @@
 # Pingpp Go SDK
 
 ## 简介
+
 pingpp 文件夹里是 SDK 文件
 
+和 pingxx 官方的 sdk 不同的是该 sdk 修改支持在调用的时候每次传入不同的 appkey 和密钥字符串,适用于代理商平台等使用场景,主要是在 pingpp 每个相应的模块的每个函数末尾增加了一个可选参数 pingpp.AuthKey{},如果传递,不使用默认的 appkey 和密钥进行加密
+
 ## 版本要求
+
 建议 Go 语言版本 1.4 以上 
 
 ## 安装
