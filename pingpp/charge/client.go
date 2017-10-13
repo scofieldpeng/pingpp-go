@@ -21,7 +21,7 @@ func getC(authKey ...pingpp.AuthKey) Client {
 		authKey[0].Key = pingpp.Key
 		authKey[0].PrivateKey = pingpp.AccountPrivateKey
 	}
-	return Client{B: pingpp.GetBackend(pingpp.APIBackend), Key: authKey[0].PrivateKey, PrivateKey: authKey[0].PrivateKey}
+	return Client{B: pingpp.GetBackend(pingpp.APIBackend), Key: authKey[0].Key, PrivateKey: authKey[0].PrivateKey}
 }
 
 // 发送 charge 请求
